@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+:root {
+  --felt-900: #06241a;
+  --felt-800: #0b3d2e;
+  --felt-700: #0f4f3b;
+  --gold-400: #e6c87a;
+  --gold-300: #efd99a;
+  --cream-100: #f7eed8;
+  --danger-400: #e2574c;
+  --success-400: #4fcf8f;
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(ellipse at top, var(--felt-700) 0%, var(--felt-900) 70%);
+  color: var(--cream-100);
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+.felt-texture {
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.04) 0, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.03) 0, transparent 45%),
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.05) 0 2px, transparent 2px 6px);
+}
+
+.card-face {
+  background: linear-gradient(160deg, #fffdf8 0%, #f1ead9 100%);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.card-back {
+  background:
+    repeating-linear-gradient(45deg, var(--felt-800) 0 6px, var(--felt-700) 6px 12px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35), inset 0 0 0 2px rgba(230, 200, 122, 0.35);
+}
+
+.chip-glow {
+  box-shadow: 0 0 0 2px rgba(230, 200, 122, 0.4), 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(230, 200, 122, 0.35);
+  border-radius: 999px;
+}
