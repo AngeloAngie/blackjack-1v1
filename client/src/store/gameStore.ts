@@ -20,6 +20,7 @@ interface GameStoreState {
 
   init: () => void;
   createRoom: (name: string, email: string, numDecks?: number) => Promise<string | null>;
+  createSoloRoom: (name: string) => Promise<string | null>;
   joinRoom: (code: string, name: string, email: string) => Promise<string | null>;
   proposeBet: (amount: number) => void;
   respondBet: (accept: boolean, counterAmount?: number) => void;
@@ -86,6 +87,21 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       socket.emit(ClientEvents.CreateRoom, { name, email, numDecks }, (ack: JoinAck) => {
         if (ack.ok) {
           saveSession({ code: ack.code, playerId: ack.playerId, rejoinToken: ack.rejoinToken, name, email });
+          set({ error: null });
+          resolve(ack.code);
+        } else {
+          set({ error: ack.error });
+          resolve(null);
+        }
+      });
+    }),
+
+  createSoloRoom: (name) =>
+    new Promise((resolve) => {
+      const socket = getSocket();
+      socket.emit(ClientEvents.CreateRoom, { name, email: "", vsComputer: true }, (ack: JoinAck) => {
+        if (ack.ok) {
+          saveSession({ code: ack.code, playerId: ack.playerId, rejoinToken: ack.rejoinToken, name, email: "" });
           set({ error: null });
           resolve(ack.code);
         } else {

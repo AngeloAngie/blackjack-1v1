@@ -24,6 +24,8 @@ export interface CreateRoomPayload {
   name: string;
   email: string;
   numDecks?: number;
+  /** Start direct een potje tegen een computerspeler i.p.v. te wachten op een tweede speler. */
+  vsComputer?: boolean;
 }
 
 export interface JoinRoomPayload {

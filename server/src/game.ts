@@ -17,6 +17,7 @@ export interface PlayerInfo {
   name: string;
   email: string;
   rejoinToken: string;
+  isBot?: boolean;
 }
 
 interface Player extends PlayerInfo {
@@ -26,9 +27,11 @@ interface Player extends PlayerInfo {
   hand: Card[];
   status: PlayerStatus;
   doubledDown: boolean;
+  isBot: boolean;
 }
 
 const MAX_PLAYERS = 2;
+export const BOT_PLAYER_ID = "bot";
 
 export class GameRoom {
   readonly code: string;
@@ -57,6 +60,10 @@ export class GameRoom {
     return this.players.length;
   }
 
+  get hasBot(): boolean {
+    return this.players.some((p) => p.isBot);
+  }
+
   getPlayer(playerId: string): Player | undefined {
     return this.players.find((p) => p.id === playerId);
   }
@@ -69,6 +76,7 @@ export class GameRoom {
     if (this.isFull) throw new Error("Deze kamer is vol");
     const player: Player = {
       ...info,
+      isBot: info.isBot ?? false,
       socketId: null,
       connected: true,
       balance: 0,
@@ -81,6 +89,17 @@ export class GameRoom {
       this.phase = "betting";
     }
     return player;
+  }
+
+  /** Voegt een computerspeler toe zodat er direct, zonder tweede mens, gespeeld kan worden. */
+  addBot(): Player {
+    return this.addPlayer({
+      id: BOT_PLAYER_ID,
+      name: "Computer",
+      email: "",
+      rejoinToken: generateId(),
+      isBot: true,
+    });
   }
 
   setSocket(playerId: string, socketId: string | null, connected: boolean): void {
@@ -291,6 +310,7 @@ export class GameRoom {
         status: p.status,
         cardCount: p.hand.length,
         doubledDown: p.doubledDown,
+        isBot: p.isBot,
         hand: isViewer || revealAll ? p.hand : undefined,
         value: isViewer || revealAll ? value : undefined,
       };

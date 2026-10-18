@@ -16,7 +16,9 @@ export function StopControls({ roomState }: StopControlsProps) {
   const myId = roomState.yourPlayerId;
   const incomingProposal = roomState.stopProposal && roomState.stopProposal.byPlayerId !== myId;
   const myProposalPending = roomState.stopProposal && roomState.stopProposal.byPlayerId === myId;
-  const opponentName = roomState.players.find((p) => p.id !== myId)?.name ?? "je tegenstander";
+  const opponent = roomState.players.find((p) => p.id !== myId);
+  const opponentName = opponent?.name ?? "je tegenstander";
+  const opponentIsBot = opponent?.isBot ?? false;
 
   return (
     <>
@@ -82,17 +84,19 @@ export function StopControls({ roomState }: StopControlsProps) {
                   }}
                   className="rounded-lg bg-[var(--felt-700)] border border-[var(--gold-400)]/40 px-4 py-2.5 text-sm text-[var(--gold-300)] hover:brightness-125 transition"
                 >
-                  Vraag {opponentName} om samen te stoppen
+                  {opponentIsBot ? "Stop de sessie" : `Vraag ${opponentName} om samen te stoppen`}
                 </button>
-                <button
-                  onClick={() => {
-                    forceStop();
-                    setModalOpen(false);
-                  }}
-                  className="rounded-lg bg-[var(--danger-400)] text-white px-4 py-2.5 text-sm font-semibold hover:brightness-110 transition"
-                >
-                  Nu direct stoppen (eenzijdig)
-                </button>
+                {!opponentIsBot && (
+                  <button
+                    onClick={() => {
+                      forceStop();
+                      setModalOpen(false);
+                    }}
+                    className="rounded-lg bg-[var(--danger-400)] text-white px-4 py-2.5 text-sm font-semibold hover:brightness-110 transition"
+                  >
+                    Nu direct stoppen (eenzijdig)
+                  </button>
+                )}
                 <button
                   onClick={() => setModalOpen(false)}
                   className="text-xs text-[var(--cream-100)]/50 hover:text-[var(--cream-100)]/80 transition mt-1"

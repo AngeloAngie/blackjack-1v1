@@ -12,12 +12,13 @@ function useJoinCodeFromUrl(): string {
 
 export function Lobby() {
   const prefillCode = useJoinCodeFromUrl();
-  const [mode, setMode] = useState<"create" | "join">(prefillCode ? "join" : "create");
+  const [mode, setMode] = useState<"create" | "join" | "computer">(prefillCode ? "join" : "create");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState(prefillCode);
   const [submitting, setSubmitting] = useState(false);
   const createRoom = useGameStore((s) => s.createRoom);
+  const createSoloRoom = useGameStore((s) => s.createSoloRoom);
   const joinRoom = useGameStore((s) => s.joinRoom);
   const error = useGameStore((s) => s.error);
   const clearError = useGameStore((s) => s.clearError);
@@ -31,6 +32,8 @@ export function Lobby() {
     setSubmitting(true);
     if (mode === "create") {
       await createRoom(name.trim(), email.trim());
+    } else if (mode === "computer") {
+      await createSoloRoom(name.trim());
     } else {
       await joinRoom(code.trim().toUpperCase(), name.trim(), email.trim());
     }
@@ -56,7 +59,7 @@ export function Lobby() {
           <button
             type="button"
             onClick={() => setMode("create")}
-            className={`flex-1 py-2 text-sm font-semibold transition-colors ${
+            className={`flex-1 py-2 text-xs sm:text-sm font-semibold transition-colors ${
               mode === "create" ? "bg-[var(--gold-400)] text-[var(--felt-900)]" : "text-[var(--cream-100)]/70"
             }`}
           >
@@ -65,11 +68,20 @@ export function Lobby() {
           <button
             type="button"
             onClick={() => setMode("join")}
-            className={`flex-1 py-2 text-sm font-semibold transition-colors ${
+            className={`flex-1 py-2 text-xs sm:text-sm font-semibold transition-colors ${
               mode === "join" ? "bg-[var(--gold-400)] text-[var(--felt-900)]" : "text-[var(--cream-100)]/70"
             }`}
           >
             Kamer joinen
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("computer")}
+            className={`flex-1 py-2 text-xs sm:text-sm font-semibold transition-colors ${
+              mode === "computer" ? "bg-[var(--gold-400)] text-[var(--felt-900)]" : "text-[var(--cream-100)]/70"
+            }`}
+          >
+            Tegen computer
           </button>
         </div>
 
@@ -97,17 +109,24 @@ export function Lobby() {
               className="rounded-lg bg-black/20 border border-[var(--gold-400)]/30 px-3 py-2 outline-none focus:border-[var(--gold-400)]"
             />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wide text-[var(--gold-300)]/80">E-mailadres</span>
-            <input
-              required
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="jij@example.com"
-              className="rounded-lg bg-black/20 border border-[var(--gold-400)]/30 px-3 py-2 outline-none focus:border-[var(--gold-400)]"
-            />
-          </label>
+          {mode !== "computer" && (
+            <label className="flex flex-col gap-1">
+              <span className="text-xs uppercase tracking-wide text-[var(--gold-300)]/80">E-mailadres</span>
+              <input
+                required
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="jij@example.com"
+                className="rounded-lg bg-black/20 border border-[var(--gold-400)]/30 px-3 py-2 outline-none focus:border-[var(--gold-400)]"
+              />
+            </label>
+          )}
+          {mode === "computer" && (
+            <p className="text-xs text-[var(--cream-100)]/60 -mt-1">
+              De computer speelt direct mee: hit tot 17, daarna stand. Geen e-mailadres nodig.
+            </p>
+          )}
 
           {error && <p className="text-sm text-[var(--danger-400)] text-center">{error}</p>}
 
@@ -116,7 +135,13 @@ export function Lobby() {
             disabled={submitting}
             className="mt-2 rounded-lg bg-[var(--gold-400)] text-[var(--felt-900)] font-bold py-2.5 hover:brightness-110 transition disabled:opacity-50"
           >
-            {submitting ? "Even geduld..." : mode === "create" ? "Kamer aanmaken" : "Joinen"}
+            {submitting
+              ? "Even geduld..."
+              : mode === "create"
+                ? "Kamer aanmaken"
+                : mode === "computer"
+                  ? "Start spel tegen de computer"
+                  : "Joinen"}
           </button>
         </form>
       </motion.div>

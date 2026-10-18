@@ -2,7 +2,8 @@
 
 Online multiplayer blackjack voor twee spelers (geen dealer) — speel tegen een vriend, met een
 simpel bijhoudsysteem voor wie wie hoeveel schuldig is. Geen echt geld, geen accounts, gewoon een
-kamer aanmaken, de link delen, en spelen.
+kamer aanmaken, de link delen, en spelen. Geen vriend online? Kies in de lobby "Tegen computer"
+om direct te spelen tegen een geautomatiseerde tegenstander (zie hieronder).
 
 ## Spelregels (kort)
 
@@ -16,6 +17,15 @@ kamer aanmaken, de link delen, en spelen.
 - Double Down: verdubbelt de inzet voor de hele ronde (je trekt dan nog precies 1 kaart). Als een
   van beide spelers double down speelt, wordt de hele ronde op het dubbele bedrag verrekend.
 - Saldo's zijn een lopende, onderlinge rekening in centen (geen echt geld) en mogen negatief worden.
+
+### Tegen de computer spelen
+
+In de lobby kies je "Tegen computer" (alleen een naam nodig, geen e-mail) om direct te starten —
+de tweede spelerplek wordt gevuld door een bot. Die speelt "dealer-stijl": hit zolang de hand onder
+17 zit, anders stand, en hij verdubbelt nooit. Hij accepteert elk voorgesteld bedrag en elk
+stop-verzoek automatisch (met een korte "denkpauze" voor het natuurlijke gevoel), dus de hele
+inzet- en stop-flow werkt verder identiek aan een potje tegen een vriend — alleen zonder te hoeven
+wachten. Er wordt geen afrekeningsmail verstuurd voor een potje tegen de computer.
 
 ## Tech stack
 

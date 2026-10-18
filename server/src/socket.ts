@@ -11,6 +11,7 @@ import {
 import { GameRoom, generateId } from "./game.js";
 import { RoomManager } from "./rooms.js";
 import { sendSettlementEmails } from "./email.js";
+import { scheduleBotTurn } from "./bot.js";
 
 const RECONNECT_GRACE_MS = 5 * 60 * 1000;
 const ROOM_CLEANUP_DELAY_MS = 2 * 60 * 1000;
@@ -49,12 +50,39 @@ export function registerSocketHandlers(io: AppServer, roomManager: RoomManager):
     for (const { socketId } of room.getConnectedSockets()) {
       if (socketId) io.to(socketId).emit(ServerEvents.Settlement, settlement);
     }
-    try {
-      await sendSettlementEmails(settlement);
-    } catch (err) {
-      console.error(`Versturen van afrekeningsmail voor kamer ${room.code} is mislukt:`, err);
+    // Een potje tegen de computer heeft geen tweede e-mailadres om naar te mailen.
+    if (!room.hasBot) {
+      try {
+        await sendSettlementEmails(settlement);
+      } catch (err) {
+        console.error(`Versturen van afrekeningsmail voor kamer ${room.code} is mislukt:`, err);
+      }
     }
     setTimeout(() => roomManager.removeRoom(room.code), ROOM_CLEANUP_DELAY_MS);
+  }
+
+  /**
+   * Voert `mutate` uit op de room, zendt de nieuwe staat uit, handelt het eventueel
+   * stoppen van de sessie af, en laat daarna de computerspeler (indien aanwezig)
+   * checken of hij iets moet doen (bieden beantwoorden, hitten/standen, stoppen
+   * accepteren). Dit is het enige punt waar elke wijziging - van een mens of van de
+   * bot zelf - doorheen loopt, zodat state-uitzending en afrekening nooit vergeten
+   * worden, voor beide soorten acties.
+   */
+  function applyRoomChange(room: GameRoom, mutate: () => void): void {
+    const wasStopped = room.phase === "stopped";
+    mutate();
+    broadcastState(room);
+    if (!wasStopped && room.phase === "stopped") {
+      void finalizeSettlement(room);
+    }
+    scheduleBotTurn(room, (botMutate) => {
+      try {
+        applyRoomChange(room, botMutate);
+      } catch (err) {
+        console.error(`Bot-actie mislukt in kamer ${room.code}:`, err);
+      }
+    });
   }
 
   function withRoom(
@@ -71,30 +99,31 @@ export function registerSocketHandlers(io: AppServer, roomManager: RoomManager):
       socket.emit(ServerEvents.Error, { message: "Deze kamer bestaat niet meer" });
       return;
     }
-    const wasStopped = room.phase === "stopped";
     try {
-      fn(room, playerId);
+      applyRoomChange(room, () => fn(room, playerId));
     } catch (err) {
       socket.emit(ServerEvents.Error, { message: err instanceof Error ? err.message : "Onbekende fout" });
-      return;
-    }
-    broadcastState(room);
-    if (!wasStopped && room.phase === "stopped") {
-      void finalizeSettlement(room);
     }
   }
 
   io.on("connection", (socket: AppSocket) => {
     socket.on(ClientEvents.CreateRoom, (payload: CreateRoomPayload, ack: Ack) => {
-      if (!isNonEmptyString(payload?.name) || !isValidEmail(payload?.email)) {
+      const vsComputer = payload?.vsComputer === true;
+      if (!isNonEmptyString(payload?.name) || (!vsComputer && !isValidEmail(payload?.email))) {
         ack({ ok: false, error: "Vul een geldige naam en e-mailadres in" });
         return;
       }
       const room = roomManager.createRoom(payload.numDecks);
       const playerId = generateId();
       const rejoinToken = generateId();
-      room.addPlayer({ id: playerId, name: payload.name.trim(), email: payload.email.trim(), rejoinToken });
+      room.addPlayer({
+        id: playerId,
+        name: payload.name.trim(),
+        email: vsComputer ? "" : payload.email.trim(),
+        rejoinToken,
+      });
       room.setSocket(playerId, socket.id, true);
+      if (vsComputer) room.addBot();
       socket.join(room.code);
       socket.data.code = room.code;
       socket.data.playerId = playerId;

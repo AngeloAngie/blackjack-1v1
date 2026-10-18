@@ -43,6 +43,7 @@ export interface PublicPlayerInfo {
   hand?: Card[];
   value?: HandValue;
   doubledDown: boolean;
+  isBot: boolean;
 }
 
 export interface BetProposal {

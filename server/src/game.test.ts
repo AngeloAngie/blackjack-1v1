@@ -152,3 +152,32 @@ describe("GameRoom - stoppen", () => {
     expect(room.phase).toBe("stopped");
   });
 });
+
+describe("GameRoom - tegen de computer", () => {
+  it("addBot vult de kamer meteen en zet de fase op betting", () => {
+    const room = new GameRoom("BOT001", { deck: new FakeDeck([]) as unknown as Deck });
+    expect(room.hasBot).toBe(false);
+    room.addPlayer({ id: generateId(), name: "Angie", email: "angie@example.com", rejoinToken: "a" });
+    expect(room.phase).toBe("waiting");
+    const bot = room.addBot();
+    expect(bot.isBot).toBe(true);
+    expect(room.hasBot).toBe(true);
+    expect(room.isFull).toBe(true);
+    expect(room.phase).toBe("betting");
+  });
+
+  it("speelt een volledige ronde met de bot als tweede speler", () => {
+    const room = new GameRoom("BOT002", {
+      deck: new FakeDeck([c("K"), c("Q"), c("10"), c("9")]) as unknown as Deck,
+    });
+    const human = room.addPlayer({ id: generateId(), name: "Angie", email: "angie@example.com", rejoinToken: "a" });
+    const bot = room.addBot();
+    room.proposeBet(human.id, 100);
+    room.respondBet(bot.id, true);
+    room.stand(human.id);
+    room.stand(bot.id);
+    expect(room.phase).toBe("round_end");
+    expect(room.getPlayer(human.id)!.balance).toBe(100);
+    expect(room.getPlayer(bot.id)!.balance).toBe(-100);
+  });
+});

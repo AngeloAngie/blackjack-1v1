@@ -17,6 +17,7 @@ export function SettlementView({ settlement, myId }: SettlementViewProps) {
   const [p1, p2] = settlement.players;
   const me = myId ? settlement.players.find((p) => p.id === myId) : undefined;
   const opponent = myId ? settlement.players.find((p) => p.id !== myId) : undefined;
+  const emailWasSent = settlement.players.every((p) => p.email);
 
   let headline: string;
   if (me && opponent) {
@@ -86,9 +87,11 @@ export function SettlementView({ settlement, myId }: SettlementViewProps) {
           </div>
         )}
 
-        <p className="text-center text-xs text-[var(--cream-100)]/50 mb-4">
-          Een volledige afrekening is naar beide e-mailadressen verstuurd (HTML + PDF-bijlage).
-        </p>
+        {emailWasSent && (
+          <p className="text-center text-xs text-[var(--cream-100)]/50 mb-4">
+            Een volledige afrekening is naar beide e-mailadressen verstuurd (HTML + PDF-bijlage).
+          </p>
+        )}
 
         <button
           onClick={resetToLobby}

@@ -34,6 +34,7 @@ export function Hand({ player, isMe, isTurn }: HandProps) {
           title={player.connected ? "Verbonden" : "Verbinding verbroken"}
         />
         <span className="font-semibold text-[var(--cream-100)]">
+          {player.isBot ? "🤖 " : ""}
           {player.name} {isMe ? "(jij)" : ""}
         </span>
         {player.doubledDown && (
