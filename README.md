@@ -101,7 +101,9 @@ staat — zie `server/src/index.ts`). Dat voorkomt CORS-gedoe en een los `VITE_S
 Voorbeeld voor **Render** (werkt vergelijkbaar op Railway of Fly.io):
 
 1. Maak een nieuwe "Web Service" aan, gekoppeld aan deze repository.
-2. Build command: `npm install && npm run build`
+2. Build command: `npm install --include=dev; npm run build`
+   (het `--include=dev` is nodig omdat Render devDependencies - typescript, vite, @types/\* -
+   overslaat zodra `NODE_ENV=production` staat, terwijl de build die juist nodig heeft)
 3. Start command: `npm run start`
 4. Environment variables: `NODE_ENV=production`, en optioneel `RESEND_API_KEY` + `EMAIL_FROM` als
    je de afrekeningsmail wilt. `PORT` wordt door Render automatisch gezet.
