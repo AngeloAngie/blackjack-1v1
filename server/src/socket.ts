@@ -55,7 +55,12 @@ export function registerSocketHandlers(io: AppServer, roomManager: RoomManager):
       try {
         await sendSettlementEmails(settlement);
       } catch (err) {
-        console.error(`Versturen van afrekeningsmail voor kamer ${room.code} is mislukt:`, err);
+        const sgBody = (err as { response?: { body?: unknown } })?.response?.body;
+        console.error(
+          `Versturen van afrekeningsmail voor kamer ${room.code} is mislukt:`,
+          err instanceof Error ? err.message : err,
+          sgBody ? `SendGrid response body: ${JSON.stringify(sgBody)}` : "",
+        );
       }
     }
     setTimeout(() => roomManager.removeRoom(room.code), ROOM_CLEANUP_DELAY_MS);
