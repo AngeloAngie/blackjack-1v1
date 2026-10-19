@@ -302,12 +302,22 @@ export class GameRoom {
     const players: PublicPlayerInfo[] = this.players.map((p) => {
       const value = p.hand.length > 0 ? calculateHandValue(p.hand) : undefined;
       const isViewer = p.id === viewerId;
+      const canSeeRealStatus = isViewer || revealAll;
+      // Voor de tegenstander mag "bust" of "blackjack" er vóór de reveal niet anders uitzien dan
+      // een gewone "stood" - anders verklap je via de status alleen al wie er gewonnen heeft
+      // terwijl de ander nog aan het spelen is (bv. "mijn tegenstander is al bust, ik hoef niet
+      // meer te riskeren"). Je eigen status blijft wel altijd je eigen echte status.
+      const status: PlayerStatus = canSeeRealStatus
+        ? p.status
+        : p.status === "bust" || p.status === "blackjack"
+          ? "stood"
+          : p.status;
       return {
         id: p.id,
         name: p.name,
         connected: p.connected,
         balance: p.balance,
-        status: p.status,
+        status,
         cardCount: p.hand.length,
         doubledDown: p.doubledDown,
         isBot: p.isBot,

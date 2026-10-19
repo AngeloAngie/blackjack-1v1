@@ -48,8 +48,26 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({ initialized: true });
     const socket = getSocket();
 
+    // Socket.io's 'connect' event fires on the first connection AND on every automatic
+    // reconnect (server restart, dropped wifi, phone backgrounding, ...). Re-attempting the
+    // stored rejoin here - not just once at startup - means a dropped connection recovers the
+    // room on its own instead of leaving the player stuck on stale state until they refresh.
     socket.on("connect", () => {
       set({ connected: true });
+      const stored = loadSession();
+      if (stored) {
+        set({ rejoining: true });
+        socket.emit(
+          ClientEvents.JoinRoom,
+          { code: stored.code, name: stored.name, email: stored.email, rejoinToken: stored.rejoinToken },
+          (ack: JoinAck) => {
+            set({ rejoining: false });
+            if (!ack.ok) {
+              clearSession();
+            }
+          },
+        );
+      }
     });
     socket.on("disconnect", () => {
       set({ connected: false });
@@ -64,21 +82,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       set({ settlement });
       clearSession();
     });
-
-    const stored = loadSession();
-    if (stored) {
-      set({ rejoining: true });
-      socket.emit(
-        ClientEvents.JoinRoom,
-        { code: stored.code, name: stored.name, email: stored.email, rejoinToken: stored.rejoinToken },
-        (ack: JoinAck) => {
-          set({ rejoining: false });
-          if (!ack.ok) {
-            clearSession();
-          }
-        },
-      );
-    }
   },
 
   createRoom: (name, email, numDecks) =>

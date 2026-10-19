@@ -181,3 +181,43 @@ describe("GameRoom - tegen de computer", () => {
     expect(room.getPlayer(bot.id)!.balance).toBe(-100);
   });
 });
+
+describe("GameRoom - geen info-lek vóór de reveal", () => {
+  it("verbergt bust/blackjack van de tegenstander tijdens het spelen (ziet eruit als 'stood')", () => {
+    const { room, a, b } = setup([c("10"), c("9"), c("10"), c("8"), c("10")]);
+    room.proposeBet(a.id, 100);
+    room.respondBet(b.id, true);
+    room.hit(a.id); // a: 10+9+10 = 29, bust
+
+    // a's eigen view: ziet zijn eigen echte status.
+    const aView = room.toPublicState(a.id);
+    expect(aView.players.find((p) => p.id === a.id)!.status).toBe("bust");
+
+    // b's view op a (nog niet gerevealed, b is zelf nog aan het spelen): moet "stood" lijken,
+    // niet "bust" - anders weet b al dat hij gewonnen heeft voor zijn eigen beurt klaar is.
+    const bView = room.toPublicState(b.id);
+    expect(bView.players.find((p) => p.id === a.id)!.status).toBe("stood");
+    expect(bView.players.find((p) => p.id === a.id)!.hand).toBeUndefined();
+
+    room.stand(b.id);
+    expect(room.phase).toBe("round_end");
+
+    // Na de reveal ziet iedereen de echte status.
+    const afterReveal = room.toPublicState(b.id);
+    expect(afterReveal.players.find((p) => p.id === a.id)!.status).toBe("bust");
+  });
+
+  it("verbergt ook een natural blackjack van de tegenstander tot de reveal", () => {
+    const { room, a, b } = setup([c("A"), c("K"), c("10"), c("9"), c("2")]);
+    room.proposeBet(a.id, 100);
+    room.respondBet(b.id, true); // a krijgt direct blackjack
+
+    const bView = room.toPublicState(b.id);
+    expect(bView.players.find((p) => p.id === a.id)!.status).toBe("stood");
+
+    room.hit(b.id);
+    room.stand(b.id);
+    const afterReveal = room.toPublicState(b.id);
+    expect(afterReveal.players.find((p) => p.id === a.id)!.status).toBe("blackjack");
+  });
+});

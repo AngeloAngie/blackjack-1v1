@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
 import type { FinalSettlement } from "@blackjack/shared";
 import { generateSettlementPdf } from "./pdf.js";
 
@@ -59,31 +59,30 @@ function buildHtml(settlement: FinalSettlement, forPlayerId: string): string {
 }
 
 export async function sendSettlementEmails(settlement: FinalSettlement): Promise<void> {
-  const gmailUser = process.env.GMAIL_USER;
-  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
-  if (!gmailUser || !gmailAppPassword) {
-    console.warn("GMAIL_USER/GMAIL_APP_PASSWORD ontbreekt - afrekeningsmail wordt niet verstuurd.");
+  const apiKey = process.env.SENDGRID_API_KEY;
+  const fromAddress = process.env.EMAIL_FROM;
+  if (!apiKey || !fromAddress) {
+    console.warn("SENDGRID_API_KEY/EMAIL_FROM ontbreekt - afrekeningsmail wordt niet verstuurd.");
     return;
   }
-
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: { user: gmailUser, pass: gmailAppPassword },
-  });
+  sgMail.setApiKey(apiKey);
 
   const pdfBuffer = await generateSettlementPdf(settlement);
+  const pdfBase64 = pdfBuffer.toString("base64");
 
   await Promise.all(
     settlement.players.map((player) =>
-      transporter.sendMail({
-        from: `Blackjack <${gmailUser}>`,
+      sgMail.send({
+        from: { email: fromAddress, name: "Blackjack" },
         to: player.email,
         subject: `Blackjack afrekening - kamer ${settlement.roomCode}`,
         html: buildHtml(settlement, player.id),
         attachments: [
           {
             filename: `afrekening-${settlement.roomCode}.pdf`,
-            content: pdfBuffer,
+            content: pdfBase64,
+            type: "application/pdf",
+            disposition: "attachment",
           },
         ],
       }),

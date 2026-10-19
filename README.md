@@ -36,8 +36,8 @@ wachten. Er wordt geen afrekeningsmail verstuurd voor een potje tegen de compute
   state.
 - **Tests**: Vitest (deck/shuffle/duplicaten, hand-waardeberekening, winnaarslogica, inzet- en
   stop-onderhandeling).
-- **E-mail**: Gmail SMTP via Nodemailer (HTML-mail + PDF-bijlage via pdfkit) voor de eindafrekening
-  na het stoppen.
+- **E-mail**: SendGrid (HTML-mail + PDF-bijlage via pdfkit) voor de eindafrekening na het stoppen -
+  via hun HTTP-API, bewust niet via SMTP (zie onder bij Omgevingsvariabelen waarom).
 - **Opslag**: alles in-memory per kamer — geen database. Een sessie is per definitie tijdelijk: bij
   het stoppen wordt een eindafrekening gemaakt en gemaild, en is de kamer klaar.
 
@@ -58,7 +58,7 @@ npm install
 ```
 
 Maak `server/.env` aan op basis van `server/.env.example` (werkt out-of-the-box voor lokaal
-spelen; e-mail wordt alleen verstuurd als je `GMAIL_USER` + `GMAIL_APP_PASSWORD` invult — zonder
+spelen; e-mail wordt alleen verstuurd als je `SENDGRID_API_KEY` + `EMAIL_FROM` invult — zonder
 die twee wordt de afrekening overgeslagen met een duidelijke waarschuwing in de server-log, de
 rest van de app werkt gewoon door).
 
@@ -91,21 +91,26 @@ volledige winnaars-/inzet-/stoplogica.
 | `PORT` | nee (default 3001) | Poort waarop de server luistert |
 | `NODE_ENV` | nee | Zet op `production` bij deployen (serveert dan ook de gebouwde client) |
 | `CLIENT_ORIGIN` | nee | Alleen nodig in productie als je de client op een ander domein host dan de server |
-| `GMAIL_USER` | nee* | Je Gmail-adres, gebruikt als afzender van de afrekeningsmail |
-| `GMAIL_APP_PASSWORD` | nee* | Een Gmail "app-wachtwoord" (zie hieronder) - **niet** je gewone Gmail-wachtwoord |
+| `SENDGRID_API_KEY` | nee* | API-key van [sendgrid.com](https://sendgrid.com) (gratis: 100 mails/dag) |
+| `EMAIL_FROM` | nee* | Het e-mailadres dat je bij SendGrid als "Single Sender" hebt geverifieerd |
 
 \* Zonder deze twee werkt de hele app gewoon, alleen de afrekeningsmail wordt niet verstuurd.
 
-**Een app-wachtwoord aanmaken:** je gewone Gmail-wachtwoord werkt niet voor SMTP. Ga naar je
-[Google-account](https://myaccount.google.com/security) → zet eerst *Verificatie in twee stappen*
-aan (verplicht) → zoek daarna naar "App-wachtwoorden" → maak er een aan (bv. met naam
-"blackjack") → kopieer de 16 tekens die verschijnen en gebruik die als `GMAIL_APP_PASSWORD`.
+**SendGrid instellen (5 minuten, geen eigen domein nodig):**
+1. Maak een gratis account op [sendgrid.com](https://sendgrid.com).
+2. Ga naar Settings → Sender Authentication → "Verify a Single Sender", vul je eigen e-mailadres
+   in, en klik de bevestigingsmail die je ontvangt.
+3. Ga naar Settings → API Keys → "Create API Key" (volledige toegang is prima voor dit project) en
+   kopieer de key (zie je maar één keer) → gebruik die als `SENDGRID_API_KEY`.
+4. Zet `EMAIL_FROM` op exact het adres dat je in stap 2 geverifieerd hebt.
 
-> **Waarom niet gewoon Resend (of een ander provider) zonder eigen domein?** De meeste
-> e-mailproviders (ook Resend) laten je zonder geverifieerd domein alleen mailen naar je **eigen**
-> adres - prima om te testen, maar je vriend zou dan nooit een afrekening krijgen. Gmail SMTP mailt
-> gewoon naar wie je wilt, zonder domein nodig, en past bij de schaal van dit project (een paar
-> mails per potje, ruim onder Gmail's eigen limiet van ~500/dag).
+> **Waarom niet Gmail SMTP of Resend?** Gmail SMTP leek de voor de hand liggende gratis oplossing,
+> maar veel hostingproviders (waaronder Render) blokkeren of beperken uitgaande SMTP-verbindingen
+> (poort 587/465) om spam tegen te gaan — dat gaf onbetrouwbare `Connection timeout`-fouten in
+> productie. Resend werkt wel via HTTP (geen SMTP-probleem), maar laat je zonder geverifieerd
+> **domein** alleen naar je eigen adres mailen. SendGrid combineert het beste van beide: een
+> HTTP-API (nooit geblokkeerd) én verificatie van slechts één **e-mailadres** (geen domein nodig),
+> waarna je naar iedereen mag mailen.
 
 ### `client/.env` (zie `client/.env.example`, alleen nodig als je front- en backend apart host)
 
@@ -126,7 +131,7 @@ Voorbeeld voor **Render** (werkt vergelijkbaar op Railway of Fly.io):
    (het `--include=dev` is nodig omdat Render devDependencies - typescript, vite, @types/\* -
    overslaat zodra `NODE_ENV=production` staat, terwijl de build die juist nodig heeft)
 3. Start command: `npm run start`
-4. Environment variables: `NODE_ENV=production`, en optioneel `GMAIL_USER` + `GMAIL_APP_PASSWORD`
+4. Environment variables: `NODE_ENV=production`, en optioneel `SENDGRID_API_KEY` + `EMAIL_FROM`
    als je de afrekeningsmail wilt. `PORT` wordt door Render automatisch gezet.
 5. Deploy. Zodra hij live is, deel je gewoon de URL van je service met je vriend(en) — zij hoeven
    niks te installeren, alleen de link te openen.
@@ -169,5 +174,5 @@ Zet dan:
   "vergeten" verbinding wordt daarbij automatisch gekickt zodat er nooit twee tabbladen tegelijk
   dezelfde speler kunnen besturen.
 - **Afrekening**: bij het stoppen bouwt de server een `FinalSettlement` op uit de rondegeschiedenis,
-  rendert daar een PDF van (`pdf.ts`) en verstuurt die als bijlage via Gmail SMTP (`email.ts`), naast
+  rendert daar een PDF van (`pdf.ts`) en verstuurt die als bijlage via SendGrid (`email.ts`), naast
   een live afrekeningsscherm in de app zelf.
