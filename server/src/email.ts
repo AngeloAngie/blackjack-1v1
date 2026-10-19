@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import type { FinalSettlement } from "@blackjack/shared";
 import { generateSettlementPdf } from "./pdf.js";
 
@@ -59,27 +59,31 @@ function buildHtml(settlement: FinalSettlement, forPlayerId: string): string {
 }
 
 export async function sendSettlementEmails(settlement: FinalSettlement): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.warn("RESEND_API_KEY ontbreekt - afrekeningsmail wordt niet verstuurd.");
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+  if (!gmailUser || !gmailAppPassword) {
+    console.warn("GMAIL_USER/GMAIL_APP_PASSWORD ontbreekt - afrekeningsmail wordt niet verstuurd.");
     return;
   }
-  const fromAddress = process.env.EMAIL_FROM ?? "Blackjack <onboarding@resend.dev>";
-  const resend = new Resend(apiKey);
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: gmailUser, pass: gmailAppPassword },
+  });
+
   const pdfBuffer = await generateSettlementPdf(settlement);
-  const pdfBase64 = pdfBuffer.toString("base64");
 
   await Promise.all(
     settlement.players.map((player) =>
-      resend.emails.send({
-        from: fromAddress,
+      transporter.sendMail({
+        from: `Blackjack <${gmailUser}>`,
         to: player.email,
         subject: `Blackjack afrekening - kamer ${settlement.roomCode}`,
         html: buildHtml(settlement, player.id),
         attachments: [
           {
             filename: `afrekening-${settlement.roomCode}.pdf`,
-            content: pdfBase64,
+            content: pdfBuffer,
           },
         ],
       }),

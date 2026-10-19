@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useGameStore } from "../store/gameStore";
+import { FairPlayInfo } from "./FairPlayInfo";
 
 function useJoinCodeFromUrl(): string {
   const [code] = useState(() => {
@@ -144,6 +145,10 @@ export function Lobby() {
                   : "Joinen"}
           </button>
         </form>
+
+        <div className="flex justify-center mt-5">
+          <FairPlayInfo />
+        </div>
       </motion.div>
     </div>
   );

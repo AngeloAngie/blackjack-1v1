@@ -7,6 +7,7 @@ import { RoundResult } from "./RoundResult";
 import { BalanceBar } from "./BalanceBar";
 import { StopControls } from "./StopControls";
 import { SoundToggle } from "./SoundToggle";
+import { FairPlayInfo } from "./FairPlayInfo";
 
 function formatEuro(cents: number): string {
   return `€${(cents / 100).toFixed(2)}`;
@@ -40,6 +41,7 @@ export function Table({ roomState }: TableProps) {
           <span className="rounded-full border border-[var(--gold-400)]/30 px-3 py-1">Pot: {formatEuro(pot)}</span>
         )}
         <span className="rounded-full border border-[var(--gold-400)]/30 px-3 py-1">Ronde {roomState.roundNumber}</span>
+        <FairPlayInfo className="!rounded-full !border-[var(--gold-400)]/30 !px-3 !py-1" />
       </div>
 
       <AnimatePresence>
