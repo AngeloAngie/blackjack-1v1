@@ -24,7 +24,9 @@ interface HandProps {
 
 export function Hand({ player, isMe, isTurn }: HandProps) {
   const cards = player.hand;
-  const placeholderCount = cards ? 0 : player.cardCount;
+  // De tegenstander stuurt soms maar 1 open kaart (de rest blijft dicht tot de reveal), dus het
+  // aantal kaartruggen is het verschil tussen de echte handgrootte en wat er al zichtbaar is.
+  const placeholderCount = player.cardCount - (cards?.length ?? 0);
 
   return (
     <div className={`flex flex-col items-center gap-2 ${isTurn ? "opacity-100" : "opacity-90"}`}>

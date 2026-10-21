@@ -6,7 +6,7 @@ const REPO_URL = "https://github.com/AngeloAngie/blackjack-1v1";
 const POINTS = [
   "Het kaartendeck leeft alleen op de server, nooit in jullie browser - niemand kan kaarten zien die nog niet gedeeld zijn.",
   "Schudden gebeurt met cryptografisch veilige randomness (dezelfde soort random-generator als voor beveiliging), niet met een voorspelbare generator.",
-  "Je ziet alleen je eigen kaarten. Die van je tegenstander blijven verborgen (kaartruggen) totdat de ronde klaar is.",
+  "Je ziet al je eigen kaarten. Van je tegenstander ligt alleen de eerste kaart open - de rest blijft een kaartrug (en diens status blijft neutraal) totdat de ronde klaar is.",
   "Elke actie - hit, stand, bieden, stoppen - wordt op de server gecontroleerd. De app op je eigen telefoon of laptop kan het spel niet beïnvloeden.",
   "De volledige broncode is open en publiek in te zien, inclusief de schud- en deel-logica.",
 ];

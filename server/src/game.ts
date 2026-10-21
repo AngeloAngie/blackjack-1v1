@@ -313,6 +313,10 @@ export class GameRoom {
         : p.status === "bust" || p.status === "blackjack"
           ? "stood"
           : p.status;
+      // De eerste kaart van iedere speler ligt open (zoals de upcard van een dealer): die mag de
+      // tegenstander altijd zien, ook terwijl de ronde nog loopt. De rest blijft dicht tot de
+      // reveal, en ook de berekende handwaarde blijft verborgen - alleen die ene kaart is zichtbaar.
+      const hand = isViewer || revealAll ? p.hand : p.hand.length > 0 ? [p.hand[0]] : undefined;
       return {
         id: p.id,
         name: p.name,
@@ -322,7 +326,7 @@ export class GameRoom {
         cardCount: p.hand.length,
         doubledDown: p.doubledDown,
         isBot: p.isBot,
-        hand: isViewer || revealAll ? p.hand : undefined,
+        hand,
         value: isViewer || revealAll ? value : undefined,
       };
     });

@@ -8,10 +8,13 @@ om direct te spelen tegen een geautomatiseerde tegenstander (zie hieronder).
 ## Spelregels (kort)
 
 - Elke speler krijgt 2 kaarten en kiest onafhankelijk van de ander Hit / Stand / (optioneel)
-  Double Down. Je ziet je eigen kaarten altijd; de kaarten van je tegenstander blijven verborgen
-  (kaartruggen) totdat jullie allebei klaar zijn met de ronde — dan worden beide handen
-  tegelijk onthuld. Dit is bewust **niet** beurt-gebaseerd (speler A dan B): zo kan niemand ooit
-  zijn beslissing baseren op info over de hand van de ander, en is het zo eerlijk mogelijk.
+  Double Down. Je ziet je eigen kaarten altijd. Van je tegenstander ligt alleen de **eerste**
+  kaart open (zoals de upcard van een dealer); de rest blijft een kaartrug totdat jullie allebei
+  klaar zijn met de ronde — dan worden beide handen volledig onthuld. Ook de status van je
+  tegenstander (bust/blackjack) blijft tot die reveal verborgen achter een neutrale "staat"-status,
+  zodat je nooit al kan zien dat je al gewonnen hebt voor je eigen beurt voorbij is. Dit is bewust
+  **niet** beurt-gebaseerd (speler A dan B): zo kan niemand zijn beslissing baseren op info over
+  hoe de ronde van de ander afloopt, en is het zo eerlijk mogelijk.
 - Bust (>21) verliest direct. Anders wint de hoogste waarde ≤ 21. Een natural blackjack (A + 10-kaart
   met je eerste 2 kaarten) verslaat een gewone 21. Gelijkspel = push, inzet gaat terug.
 - Double Down: verdubbelt de inzet voor de hele ronde (je trekt dan nog precies 1 kaart). Als een

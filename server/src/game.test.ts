@@ -196,8 +196,13 @@ describe("GameRoom - geen info-lek vóór de reveal", () => {
     // b's view op a (nog niet gerevealed, b is zelf nog aan het spelen): moet "stood" lijken,
     // niet "bust" - anders weet b al dat hij gewonnen heeft voor zijn eigen beurt klaar is.
     const bView = room.toPublicState(b.id);
-    expect(bView.players.find((p) => p.id === a.id)!.status).toBe("stood");
-    expect(bView.players.find((p) => p.id === a.id)!.hand).toBeUndefined();
+    const aFromB = bView.players.find((p) => p.id === a.id)!;
+    expect(aFromB.status).toBe("stood");
+    // Alleen de eerste kaart van a ligt open voor b, de rest (incl. de kaart die a erbij
+    // trok) blijft dicht, en de berekende waarde blijft sowieso verborgen.
+    expect(aFromB.hand).toEqual([a.hand[0]]);
+    expect(aFromB.cardCount).toBe(3);
+    expect(aFromB.value).toBeUndefined();
 
     room.stand(b.id);
     expect(room.phase).toBe("round_end");
@@ -219,5 +224,26 @@ describe("GameRoom - geen info-lek vóór de reveal", () => {
     room.stand(b.id);
     const afterReveal = room.toPublicState(b.id);
     expect(afterReveal.players.find((p) => p.id === a.id)!.status).toBe("blackjack");
+  });
+
+  it("toont de eerste kaart van beide spelers aan elkaar, de tweede blijft dicht", () => {
+    const { room, a, b } = setup([c("K"), c("Q"), c("5"), c("9")]);
+    room.proposeBet(a.id, 100);
+    room.respondBet(b.id, true);
+
+    const aView = room.toPublicState(a.id);
+    const bFromA = aView.players.find((p) => p.id === b.id)!;
+    expect(bFromA.hand).toEqual([b.hand[0]]);
+    expect(bFromA.hand).not.toEqual(b.hand);
+    expect(bFromA.cardCount).toBe(2);
+    expect(bFromA.value).toBeUndefined();
+
+    const bView = room.toPublicState(b.id);
+    const aFromB = bView.players.find((p) => p.id === a.id)!;
+    expect(aFromB.hand).toEqual([a.hand[0]]);
+    expect(aFromB.value).toBeUndefined();
+
+    // Ieders eigen volledige hand blijft gewoon zichtbaar voor zichzelf.
+    expect(aView.players.find((p) => p.id === a.id)!.hand).toEqual(a.hand);
   });
 });
