@@ -28,12 +28,26 @@ type AppSocket = Socket<any, any, any, AppSocketData>;
 
 type Ack = (response: { ok: true; code: string; playerId: string; rejoinToken: string } | { ok: false; error: string }) => void;
 
+const MAX_NAME_LENGTH = 40;
+
+// Begrenst ook de lengte, niet alleen "niet leeg": zonder dit kon een speler een naam van
+// megabytes sturen die vervolgens in elke state-broadcast, e-mail en PDF terechtkwam.
 function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
+  return typeof value === "string" && value.trim().length > 0 && value.trim().length <= MAX_NAME_LENGTH;
 }
 
 function isValidEmail(value: unknown): value is string {
-  return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  return typeof value === "string" && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+const MAX_DECKS = 8;
+
+// payload.numDecks komt rechtstreeks van de client - zonder deze check kon 0 of een negatief
+// getal het deck voorgoed leeg laten (elke ronde crasht daarna), en een absurd hoog getal
+// onnodig veel geheugen/CPU kosten. De server mag de client hier nooit op zijn woord geloven.
+function sanitizeNumDecks(value: unknown): number {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) return 1;
+  return Math.min(value, MAX_DECKS);
 }
 
 export function registerSocketHandlers(io: AppServer, roomManager: RoomManager): void {
@@ -138,7 +152,7 @@ export function registerSocketHandlers(io: AppServer, roomManager: RoomManager):
         ack({ ok: false, error: "Vul een geldige naam en e-mailadres in" });
         return;
       }
-      const room = roomManager.createRoom(payload.numDecks);
+      const room = roomManager.createRoom(sanitizeNumDecks(payload?.numDecks));
       const playerId = generateId();
       const rejoinToken = generateId();
       room.addPlayer({

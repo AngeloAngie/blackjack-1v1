@@ -8,16 +8,31 @@ function formatEuro(cents: number): string {
   return `${sign}€${(abs / 100).toFixed(2)}`;
 }
 
+// Spelernamen worden vrij door de speler zelf getypt in de lobby. Zonder escapen kon iemand
+// HTML/links in z'n naam zetten die vervolgens ongefilterd in de afrekeningsmail van BEIDE
+// spelers terechtkwam (opgemaakte phishing-link, kapotte layout, etc.) - dit mailadres wordt
+// immers ook naar de ander gestuurd, niet alleen naar de speler die 'm invulde.
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function buildHtml(settlement: SettlementData, forPlayerId: string): string {
   const me = settlement.players.find((p) => p.id === forPlayerId)!;
   const opponent = settlement.players.find((p) => p.id !== forPlayerId)!;
   const date = new Date(settlement.endedAt).toLocaleString("nl-NL");
+  const myName = escapeHtml(me.name);
+  const opponentName = escapeHtml(opponent.name);
 
   let headline: string;
   if (me.balance > 0) {
-    headline = `Je hebt ${formatEuro(me.balance)} gewonnen van ${opponent.name}!`;
+    headline = `Je hebt ${formatEuro(me.balance)} gewonnen van ${opponentName}!`;
   } else if (me.balance < 0) {
-    headline = `Je bent ${formatEuro(Math.abs(me.balance))} verschuldigd aan ${opponent.name}.`;
+    headline = `Je bent ${formatEuro(Math.abs(me.balance))} verschuldigd aan ${opponentName}.`;
   } else {
     headline = `Jullie staan quitte.`;
   }
@@ -25,7 +40,7 @@ function buildHtml(settlement: SettlementData, forPlayerId: string): string {
   const rows = settlement.history
     .map((round) => {
       const winnerName =
-        round.winnerId === null ? "Push" : round.winnerId === me.id ? me.name : opponent.name;
+        round.winnerId === null ? "Push" : round.winnerId === me.id ? myName : opponentName;
       return `<tr>
         <td style="padding:6px 10px;border-bottom:1px solid #eee;">${round.roundNumber}</td>
         <td style="padding:6px 10px;border-bottom:1px solid #eee;">${formatEuro(round.bet)}${round.multiplier === 2 ? " ×2" : ""}</td>
