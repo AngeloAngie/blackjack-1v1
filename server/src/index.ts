@@ -8,6 +8,14 @@ import { Server } from "socket.io";
 import { RoomManager } from "./rooms.js";
 import { registerSocketHandlers } from "./socket.js";
 
+// Node beëindigt het hele proces bij een onafgehandelde promise-rejection. Voor een
+// socket-server met twee spelers betekent dat: één onverwachte fout ergens (bv. tijdens het
+// afronden van een sessie) gooit BEIDE spelers eruit, zonder enige foutmelding. Loggen en
+// doordraaien is hier veiliger dan de hele sessie van iedereen te laten crashen.
+process.on("unhandledRejection", (reason) => {
+  console.error("Onafgehandelde promise-rejection (proces blijft draaien):", reason);
+});
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 3001);
 const isProduction = process.env.NODE_ENV === "production";

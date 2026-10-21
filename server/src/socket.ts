@@ -3,6 +3,7 @@ import {
   ClientEvents,
   ServerEvents,
   type CreateRoomPayload,
+  type FinalSettlement,
   type JoinRoomPayload,
   type ProposeBetPayload,
   type RespondBetPayload,
@@ -37,6 +38,11 @@ function isValidEmail(value: unknown): value is string {
 
 export function registerSocketHandlers(io: AppServer, roomManager: RoomManager): void {
   const disconnectTimers = new Map<string, NodeJS.Timeout>();
+  // De Settlement-gebeurtenis (incl. PDF) wordt maar één keer uitgezonden, op het moment dat de
+  // sessie stopt. Een speler die op dat exacte moment offline was (haperende verbinding, tabblad
+  // op de achtergrond) zou 'm anders voorgoed missen en vast blijven zitten op een leeg scherm
+  // zonder afrekening. Door 'm hier te cachen kan een latere herverbinding 'm alsnog krijgen.
+  const settlementCache = new Map<string, FinalSettlement>();
 
   function broadcastState(room: GameRoom): void {
     for (const { playerId, socketId } of room.getConnectedSockets()) {
@@ -51,7 +57,8 @@ export function registerSocketHandlers(io: AppServer, roomManager: RoomManager):
     // De PDF gaat altijd mee in het socket-event, ongeacht of de e-mail straks lukt - zo kan
     // iedereen de afrekening downloaden, ook als het e-mailen faalt of nog niet is ingesteld.
     const pdfBuffer = await generateSettlementPdf(settlement);
-    const settlementWithPdf = { ...settlement, pdfBase64: pdfBuffer.toString("base64") };
+    const settlementWithPdf: FinalSettlement = { ...settlement, pdfBase64: pdfBuffer.toString("base64") };
+    settlementCache.set(room.code, settlementWithPdf);
     for (const { socketId } of room.getConnectedSockets()) {
       if (socketId) io.to(socketId).emit(ServerEvents.Settlement, settlementWithPdf);
     }
@@ -68,7 +75,10 @@ export function registerSocketHandlers(io: AppServer, roomManager: RoomManager):
         );
       }
     }
-    setTimeout(() => roomManager.removeRoom(room.code), ROOM_CLEANUP_DELAY_MS);
+    setTimeout(() => {
+      roomManager.removeRoom(room.code);
+      settlementCache.delete(room.code);
+    }, ROOM_CLEANUP_DELAY_MS);
   }
 
   /**
@@ -84,7 +94,12 @@ export function registerSocketHandlers(io: AppServer, roomManager: RoomManager):
     mutate();
     broadcastState(room);
     if (!wasStopped && room.phase === "stopped") {
-      void finalizeSettlement(room);
+      // Zonder .catch() crasht een falende promise hier de hele Node-server (onafgehandelde
+      // rejection) - en dan raken BEIDE spelers alsnog vast, zonder dat er ook maar een
+      // foutmelding verstuurd is. Loggen en doorgaan is hier de enige veilige optie.
+      finalizeSettlement(room).catch((err) => {
+        console.error(`Afronden van sessie in kamer ${room.code} is onverwacht mislukt:`, err);
+      });
     }
     scheduleBotTurn(room, (botMutate) => {
       try {
@@ -170,6 +185,13 @@ export function registerSocketHandlers(io: AppServer, roomManager: RoomManager):
           socket.data.playerId = existing.id;
           ack({ ok: true, code, playerId: existing.id, rejoinToken: existing.rejoinToken });
           broadcastState(room);
+          // Was de sessie al gestopt vóórdat deze speler terugkwam (bv. net offline op het moment
+          // van stoppen), dan heeft die de eenmalige Settlement-uitzending gemist. Zonder dit bleef
+          // iemand voor altijd op een leeg bord hangen zonder afrekening of PDF te kunnen zien.
+          if (room.phase === "stopped") {
+            const cached = settlementCache.get(code);
+            if (cached) socket.emit(ServerEvents.Settlement, cached);
+          }
           return;
         }
       }
@@ -258,7 +280,9 @@ export function registerSocketHandlers(io: AppServer, roomManager: RoomManager):
         if (stillRoom.phase !== "stopped") {
           stillRoom.forceStop();
           broadcastState(stillRoom);
-          void finalizeSettlement(stillRoom);
+          finalizeSettlement(stillRoom).catch((err) => {
+            console.error(`Afronden van sessie in kamer ${stillRoom.code} is onverwacht mislukt:`, err);
+          });
         }
       }, RECONNECT_GRACE_MS);
       disconnectTimers.set(key, timer);

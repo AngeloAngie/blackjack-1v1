@@ -69,6 +69,9 @@ export function Table({ roomState }: TableProps) {
         {roomState.phase === "betting" && <BettingPanel roomState={roomState} />}
         {roomState.phase === "playing" && <ActionBar me={me} />}
         {roomState.phase === "round_end" && <RoundResult roomState={roomState} />}
+        {roomState.phase === "stopped" && (
+          <span className="text-sm text-[var(--gold-300)]/70 animate-pulse">Sessie wordt afgerond...</span>
+        )}
       </div>
     </div>
   );

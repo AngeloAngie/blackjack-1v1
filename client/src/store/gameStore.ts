@@ -63,7 +63,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         (ack: JoinAck) => {
           set({ rejoining: false });
           if (!ack.ok) {
+            // Als de kamer niet meer bestaat (bv. opgeruimd na het stoppen, of de server is
+            // herstart) mag de speler niet vastzitten op de laatst bekende, inmiddels foute
+            // staat - zonder dit bleef iemand die even de verbinding kwijt was voor altijd op
+            // een bevroren scherm hangen terwijl de ander allang verder was.
             clearSession();
+            set({ roomState: null, settlement: null, error: "Je sessie is verlopen of de kamer bestaat niet meer." });
           }
         },
       );
