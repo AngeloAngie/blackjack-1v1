@@ -53,14 +53,17 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // actually changed, but it's the only way to recover when a message was missed without an
     // explicit disconnect/connect cycle (e.g. a backgrounded tab's long-poll got throttled by
     // the browser and silently stopped delivering events for a while).
+    let resyncInFlight = false;
     function resync() {
       const stored = loadSession();
-      if (!stored) return;
+      if (!stored || resyncInFlight) return;
+      resyncInFlight = true;
       set({ rejoining: true });
       socket.emit(
         ClientEvents.JoinRoom,
         { code: stored.code, name: stored.name, email: stored.email, rejoinToken: stored.rejoinToken },
         (ack: JoinAck) => {
+          resyncInFlight = false;
           set({ rejoining: false });
           if (!ack.ok) {
             // Als de kamer niet meer bestaat (bv. opgeruimd na het stoppen, of de server is
@@ -107,6 +110,19 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
           resync();
         }
       });
+    }
+
+    // Belt-and-suspenders: in productie blijft de socket.io-verbinding op dit hosting-platform
+    // op long-polling hangen (geen websocket-upgrade), en die polling-requests kunnen stil
+    // vastlopen zonder dat 'disconnect' of 'visibilitychange' afgaat - ook op een tabblad dat
+    // gewoon op de voorgrond open staat. Zo bleef bv. de kamermaker op "wachten op je vriend"
+    // hangen nadat de ander al gejoined was, totdat er handmatig ververst werd. Een korte,
+    // goedkope periodieke resync maakt dat verschil vanzelf na een paar seconden goed.
+    const resyncInterval = setInterval(() => {
+      if (socket.connected) resync();
+    }, 8000);
+    if (typeof window !== "undefined") {
+      window.addEventListener("beforeunload", () => clearInterval(resyncInterval));
     }
   },
 
