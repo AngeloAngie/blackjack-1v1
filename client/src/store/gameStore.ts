@@ -48,26 +48,34 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({ initialized: true });
     const socket = getSocket();
 
+    // Re-fetches the room state using the stored rejoin token. Safe to call even when we
+    // *think* we're still connected: it's a cheap, idempotent no-op on the server if nothing
+    // actually changed, but it's the only way to recover when a message was missed without an
+    // explicit disconnect/connect cycle (e.g. a backgrounded tab's long-poll got throttled by
+    // the browser and silently stopped delivering events for a while).
+    function resync() {
+      const stored = loadSession();
+      if (!stored) return;
+      set({ rejoining: true });
+      socket.emit(
+        ClientEvents.JoinRoom,
+        { code: stored.code, name: stored.name, email: stored.email, rejoinToken: stored.rejoinToken },
+        (ack: JoinAck) => {
+          set({ rejoining: false });
+          if (!ack.ok) {
+            clearSession();
+          }
+        },
+      );
+    }
+
     // Socket.io's 'connect' event fires on the first connection AND on every automatic
     // reconnect (server restart, dropped wifi, phone backgrounding, ...). Re-attempting the
     // stored rejoin here - not just once at startup - means a dropped connection recovers the
     // room on its own instead of leaving the player stuck on stale state until they refresh.
     socket.on("connect", () => {
       set({ connected: true });
-      const stored = loadSession();
-      if (stored) {
-        set({ rejoining: true });
-        socket.emit(
-          ClientEvents.JoinRoom,
-          { code: stored.code, name: stored.name, email: stored.email, rejoinToken: stored.rejoinToken },
-          (ack: JoinAck) => {
-            set({ rejoining: false });
-            if (!ack.ok) {
-              clearSession();
-            }
-          },
-        );
-      }
+      resync();
     });
     socket.on("disconnect", () => {
       set({ connected: false });
@@ -82,6 +90,19 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       set({ settlement });
       clearSession();
     });
+
+    // A tab that was backgrounded (phone locked, switched to another app/tab) can have its
+    // connection silently stall without ever firing 'disconnect' - the browser just stops
+    // waking it up to process incoming data. Re-syncing whenever the tab becomes visible again
+    // catches that case too, so "the other player's stop/action never showed up" resolves
+    // itself the moment they look back at the screen, no manual refresh needed.
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          resync();
+        }
+      });
+    }
   },
 
   createRoom: (name, email, numDecks) =>
