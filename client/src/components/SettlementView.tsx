@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import type { FinalSettlement } from "@blackjack/shared";
 import { useGameStore } from "../store/gameStore";
+import { RoundHistoryList } from "./RoundHistoryList";
 
 function formatEuro(cents: number): string {
   const sign = cents < 0 ? "-" : "";
@@ -50,7 +51,7 @@ export function SettlementView({ settlement, myId }: SettlementViewProps) {
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg rounded-2xl border border-[var(--gold-400)]/30 bg-[var(--felt-800)]/90 backdrop-blur p-6 sm:p-8 shadow-2xl"
+        className="w-full max-w-xl rounded-2xl border border-[var(--gold-400)]/30 bg-[var(--felt-800)]/90 backdrop-blur p-6 sm:p-8 shadow-2xl"
       >
         <h1 className="text-xl sm:text-2xl font-bold text-center text-[var(--gold-300)] mb-2">Eindafrekening</h1>
         <p className="text-center text-sm text-[var(--cream-100)]/70 mb-6">
@@ -71,35 +72,12 @@ export function SettlementView({ settlement, myId }: SettlementViewProps) {
         </div>
 
         {settlement.history.length > 0 && (
-          <div className="max-h-56 overflow-y-auto rounded-lg border border-[var(--gold-400)]/20 mb-6">
-            <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-[var(--felt-900)] text-[var(--gold-300)]/70">
-                <tr>
-                  <th className="py-2 px-2 text-left">Ronde</th>
-                  <th className="py-2 px-2 text-left">Inzet</th>
-                  <th className="py-2 px-2 text-left">Winnaar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {settlement.history.map((round) => {
-                  const winnerName =
-                    round.winnerId === null
-                      ? "Push"
-                      : settlement.players.find((p) => p.id === round.winnerId)?.name ?? "-";
-                  return (
-                    <tr key={round.roundNumber} className="border-t border-[var(--gold-400)]/10">
-                      <td className="py-1.5 px-2">{round.roundNumber}</td>
-                      <td className="py-1.5 px-2">
-                        {formatEuro(round.bet)}
-                        {round.multiplier === 2 ? " ×2" : ""}
-                      </td>
-                      <td className="py-1.5 px-2">{winnerName}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <p className="text-xs uppercase tracking-wide text-[var(--gold-300)]/70 mb-2">
+              Rondegeschiedenis (klik een ronde open voor de kaarten)
+            </p>
+            <RoundHistoryList settlement={settlement} />
+          </>
         )}
 
         {emailWasSent && (
