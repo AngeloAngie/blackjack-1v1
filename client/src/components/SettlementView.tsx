@@ -7,6 +7,21 @@ function formatEuro(cents: number): string {
   return `${sign}€${(Math.abs(cents) / 100).toFixed(2)}`;
 }
 
+function downloadPdf(settlement: FinalSettlement): void {
+  const byteChars = atob(settlement.pdfBase64);
+  const bytes = new Uint8Array(byteChars.length);
+  for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `afrekening-${settlement.roomCode}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 interface SettlementViewProps {
   settlement: FinalSettlement;
   myId?: string;
@@ -92,6 +107,13 @@ export function SettlementView({ settlement, myId }: SettlementViewProps) {
             Een volledige afrekening is naar beide e-mailadressen verstuurd (HTML + PDF-bijlage).
           </p>
         )}
+
+        <button
+          onClick={() => downloadPdf(settlement)}
+          className="w-full rounded-lg bg-[var(--felt-700)] border border-[var(--gold-400)]/40 text-[var(--gold-300)] font-semibold py-2.5 mb-3 hover:brightness-125 transition"
+        >
+          📄 Download PDF
+        </button>
 
         <button
           onClick={resetToLobby}

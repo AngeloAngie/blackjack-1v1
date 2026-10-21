@@ -70,7 +70,7 @@ export interface PublicRoomState {
   yourPlayerId: string;
 }
 
-export interface FinalSettlement {
+export interface SettlementData {
   roomCode: string;
   endedAt: number;
   roundsPlayed: number;
@@ -81,4 +81,9 @@ export interface FinalSettlement {
     email: string;
     balance: number;
   }[];
+}
+
+export interface FinalSettlement extends SettlementData {
+  /** Base64-gecodeerde PDF van de afrekening, zodat downloaden altijd werkt, ook als de e-mail faalt. */
+  pdfBase64: string;
 }

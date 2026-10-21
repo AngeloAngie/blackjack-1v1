@@ -1,5 +1,5 @@
 import sgMail from "@sendgrid/mail";
-import type { FinalSettlement } from "@blackjack/shared";
+import type { SettlementData } from "@blackjack/shared";
 import { generateSettlementPdf } from "./pdf.js";
 
 function formatEuro(cents: number): string {
@@ -8,7 +8,7 @@ function formatEuro(cents: number): string {
   return `${sign}€${(abs / 100).toFixed(2)}`;
 }
 
-function buildHtml(settlement: FinalSettlement, forPlayerId: string): string {
+function buildHtml(settlement: SettlementData, forPlayerId: string): string {
   const me = settlement.players.find((p) => p.id === forPlayerId)!;
   const opponent = settlement.players.find((p) => p.id !== forPlayerId)!;
   const date = new Date(settlement.endedAt).toLocaleString("nl-NL");
@@ -58,7 +58,7 @@ function buildHtml(settlement: FinalSettlement, forPlayerId: string): string {
   </div>`;
 }
 
-export async function sendSettlementEmails(settlement: FinalSettlement): Promise<void> {
+export async function sendSettlementEmails(settlement: SettlementData): Promise<void> {
   const apiKey = process.env.SENDGRID_API_KEY;
   const fromAddress = process.env.EMAIL_FROM;
   if (!apiKey || !fromAddress) {

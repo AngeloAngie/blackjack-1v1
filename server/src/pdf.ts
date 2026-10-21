@@ -1,5 +1,5 @@
 import PDFDocument from "pdfkit";
-import type { FinalSettlement } from "@blackjack/shared";
+import type { SettlementData } from "@blackjack/shared";
 
 function formatEuro(cents: number): string {
   const sign = cents < 0 ? "-" : "";
@@ -7,7 +7,7 @@ function formatEuro(cents: number): string {
   return `${sign}€${(abs / 100).toFixed(2)}`;
 }
 
-export function generateSettlementPdf(settlement: FinalSettlement): Promise<Buffer> {
+export function generateSettlementPdf(settlement: SettlementData): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50 });
     const chunks: Buffer[] = [];

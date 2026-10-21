@@ -8,6 +8,7 @@ import {
   type PublicRoomState,
   type RoomPhase,
   type RoundHistoryEntry,
+  type SettlementData,
   type StopProposal,
 } from "@blackjack/shared";
 import { Deck } from "./deck.js";
@@ -342,7 +343,7 @@ export class GameRoom {
     };
   }
 
-  toSettlement() {
+  toSettlement(): SettlementData {
     return {
       roomCode: this.code,
       endedAt: this.stoppedAt ?? Date.now(),

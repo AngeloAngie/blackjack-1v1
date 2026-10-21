@@ -11,6 +11,7 @@ import {
 import { GameRoom, generateId } from "./game.js";
 import { RoomManager } from "./rooms.js";
 import { sendSettlementEmails } from "./email.js";
+import { generateSettlementPdf } from "./pdf.js";
 import { scheduleBotTurn } from "./bot.js";
 
 const RECONNECT_GRACE_MS = 5 * 60 * 1000;
@@ -47,8 +48,12 @@ export function registerSocketHandlers(io: AppServer, roomManager: RoomManager):
 
   async function finalizeSettlement(room: GameRoom): Promise<void> {
     const settlement = room.toSettlement();
+    // De PDF gaat altijd mee in het socket-event, ongeacht of de e-mail straks lukt - zo kan
+    // iedereen de afrekening downloaden, ook als het e-mailen faalt of nog niet is ingesteld.
+    const pdfBuffer = await generateSettlementPdf(settlement);
+    const settlementWithPdf = { ...settlement, pdfBase64: pdfBuffer.toString("base64") };
     for (const { socketId } of room.getConnectedSockets()) {
-      if (socketId) io.to(socketId).emit(ServerEvents.Settlement, settlement);
+      if (socketId) io.to(socketId).emit(ServerEvents.Settlement, settlementWithPdf);
     }
     // Een potje tegen de computer heeft geen tweede e-mailadres om naar te mailen.
     if (!room.hasBot) {
